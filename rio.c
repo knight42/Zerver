@@ -1,10 +1,9 @@
 #include "rio.h"
 
-ssize_t rio_readn(int fd, void *userbuf, size_t n)
+ssize_t rio_readn(int fd, char *buf, size_t n)
 {
     size_t nleft = n;
     ssize_t nread;
-    char *buf = (char *)userbuf;
     while(nleft > 0){
         if((nread = read(fd, buf, nleft)) < 0){
            // interupt by sig handler return and call read() again
@@ -25,11 +24,10 @@ ssize_t rio_readn(int fd, void *userbuf, size_t n)
     return n - nleft;
 }
 
-ssize_t rio_writen(int fd, void *userbuf, size_t n)
+ssize_t rio_writen(int fd, const char *buf, size_t n)
 {
     size_t nleft = n;
     ssize_t nwritten;
-    char *buf = (char *)userbuf;
     while(nleft > 0){
         if((nwritten = write(fd, buf, nleft)) <= 0){
             if(errno == EINTR){
@@ -78,11 +76,11 @@ static ssize_t rio_read(rio_t *rp, char *userbuf, size_t n)
     return cnt;
 }
 
-ssize_t rio_readlineb(rio_t *rp, void *userbuf, size_t maxlen)
+ssize_t rio_readlineb(rio_t *rp, char *buf, size_t maxlen)
 {
     int n;
     ssize_t rc;
-    char c, *buf = (char *)userbuf;
+    char c;
     for(n=1; n<maxlen; ++n){
         // read until '\n'
         if((rc = rio_read(rp, &c, 1)) == 1){
