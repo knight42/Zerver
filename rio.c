@@ -84,6 +84,7 @@ ssize_t rio_readlineb(rio_t *rp, void *userbuf, size_t maxlen)
     ssize_t rc;
     char c, *buf = (char *)userbuf;
     for(n=1; n<maxlen; ++n){
+        // read until '\n'
         if((rc = rio_read(rp, &c, 1)) == 1){
             *buf++ = c;
             if(c == '\n') break;
