@@ -18,4 +18,5 @@ ssize_t rio_writen(int fd, const char *buf, size_t n);
 
 /* with buffer */
 void rio_readinitb(rio_t *rp, int fd);
+ssize_t rio_readnb(rio_t *rp, char *buf, size_t n);
 ssize_t rio_readlineb(rio_t *rp, char *userbuf, size_t maxlen);
