@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
+#include <fcntl.h>  // open()
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <netinet/in.h>
@@ -10,12 +12,15 @@
 #include "rio.h"
 
 #define upper(a) ((a)<91?(a):(a)-('a'-'A'))
-static const char *BaseDir=NULL;
+static char *basedir=NULL;
 
+#define strhash(s) (*(s))
+/*
 int strhash(char *s)
 {
     return *s;
 }
+*/
 
 void diehere(const char *prog){
     perror(prog);
@@ -79,32 +84,87 @@ void disperror(int fd, const char *cause, const char *errnum,
     rio_writen(fd, body, strlen(body));
 }
 
-void serve_static()
-{;}
-
 int parse_uri(char *uri, char *filename, char *cgiargs)
 {
     /* return 1 if file is static else 0 */
     char *ptr;
-    ptr = strchr(uri, '?');
-    if(ptr == NULL){
+    if(strncmp(uri, "/cgi-bin", strlen("/cgi-bin")) == 0){
+        ptr = strchr(uri, '?');
+        if(ptr){
+            sprintf(cgiargs, "%s", ptr+1);
+            *ptr = 0;
+        }
+        else *cgiargs = 0;
+
+        sprintf(filename, "%s%s", basedir, uri);
+        return 0;
+    }
+    else{
         *cgiargs = 0;
-        sprintf(filename, "%s%s", BaseDir, uri);
+        if(uri[strlen(uri)-1] == '/')
+            strcat(uri, "index.html");
+
+        sprintf(filename, "%s%s", basedir, uri);
         return 1;
     }
-    if(ptr != strrchr(uri, '?')){
-        fprintf(stderr, "invalid request: %s\n", uri);
-        exit(1);
-    }
-
-    return 0;
 }
 
+void read_requesthdrs(rio_t *rp)
+{
+    char buf[BUFSIZ];
+    rio_readlineb(rp, buf, BUFSIZ);
+    while(strcmp(buf, "\r\n")){
+        rio_readlineb(rp, buf, BUFSIZ);
+        printf("%s", buf);
+    }
+}
+
+void get_filetype(char *filename, char *filetype)
+{
+    char *p = strrchr(filename, '.');
+    if(strstr(p, ".html"))
+        strcpy(filetype, "text/html");
+    else if(strstr(p, ".css"))
+        strcpy(filetype, "text/css");
+    else if(strstr(p, ".js"))
+        strcpy(filetype, "text/javascript");
+    else if(strstr(p, ".gif"))
+        strcpy(filetype, "image/gif");
+    else if(strstr(p, ".jpg"))
+        strcpy(filetype, "image/jpeg");
+    else if(strstr(p, ".png"))
+        strcpy(filetype, "image/png");
+    else
+        strcpy(filetype, "text/plain");
+}
+
+void serve_dynamic(int fd, char *filename, char *cgiargs)
+{
+    ;
+}
+
+void serve_static(int fd, char *filename, long size)
+{
+    int srcfd, nread;
+    char filetype[BUFSIZ], buf[BUFSIZ];
+    get_filetype(filename, filetype);
+    strcpy(buf, "HTTP/1.0 200 OK\r\n");
+    strcat(buf, SERVER_STRING);
+    sprintf(buf, "%sContent-length: %ld\r\n", buf, size);
+    sprintf(buf, "%sContent-type: %s\r\n\r\n", buf, filetype);
+    rio_writen(fd, buf, strlen(buf));
+
+    srcfd = open(filename, O_RDONLY);
+    while((nread = (int)rio_readn(srcfd, buf, BUFSIZ)) > 0){
+        rio_writen(fd, buf, nread);
+    }
+    close(srcfd);
+}
 
 void handle_request(int fd)
 {
     char buf[BUFSIZ], method[BUFSIZ]={0}, uri[BUFSIZ], version[BUFSIZ];
-    char filename[BUFSIZ], cgiargs[BUFSIZ], *c;
+    char filename[BUFSIZ], cgiargs[BUFSIZ];
     int is_static;
     struct stat sbuf;
     rio_t rio;
@@ -113,15 +173,36 @@ void handle_request(int fd)
     rio_readinitb(&rio, fd);
     rio_readlineb(&rio, buf, BUFSIZ);
     sscanf(buf, "%s %s %s", method, uri, version);
-    
+
+    /*
     for(c = method; *c; ++c)
         *c = upper(*c);
-
-    is_static = parse_uri(uri, filename, cgiargs);
-
+    */
+    //
+    read_requesthdrs(&rio);
+    // 
+    *method = upper(*method);
     switch(strhash(method)){
         case GET:
-            disperror(fd, "browser", "200", "server hello", "succeed in handling your request");
+            is_static = parse_uri(uri, filename, cgiargs);
+            if(stat(filename, &sbuf) < 0){
+                disperror(fd, filename, "404", "Not found", "Zerver couldnt find this file.");
+                return;
+            }
+            if(is_static){
+                if(!(S_IRUSR & sbuf.st_mode) || !(S_ISREG(sbuf.st_mode))){
+                    disperror(fd, filename, "403", "Forbidden", "Zerver couldnt read this file.");
+                    return;
+                }
+                serve_static(fd, filename, sbuf.st_size);
+            }
+            else{
+                if(!(S_ISREG(sbuf.st_mode)) || !(S_IXUSR & sbuf.st_mode)){
+                    disperror(fd, filename, "403", "Forbidden", "Zerver couldn't read this file.");
+                    return;
+                }
+                serve_dynamic(fd, filename, cgiargs);
+            }
             break;
         case POST:
             break;
@@ -151,33 +232,33 @@ int main(int argc, char *argv[]){
                 isproxy=1;
                 break;
             case 'w':
-                BaseDir = optarg;
-                c = BaseDir + strlen(BaseDir) - 1;
+                basedir = optarg;
+                c = basedir + strlen(basedir) - 1;
                 *c = (*c == '/') ? 0 : *c;
-                if(stat(BaseDir, &sb) < 0){
+                if(stat(basedir, &sb) < 0){
                     diehere("stat");
                 }
                 if((sb.st_mode & S_IFMT) != S_IFDIR){
-                    fprintf(stderr, "Invalid working dir: %s\n", BaseDir);
+                    fprintf(stderr, "Invalid working dir: %s\n", basedir);
                     exit(1);
                 }
                 break;
             default:
                 puts("Usage:");
                 printf("zerver -p port ");
-                printf("-w BaseDir ");
+                printf("-w basedir ");
                 puts("");
                 exit(0);
         }
     }
 
-    if(!BaseDir){
-        BaseDir = (char *)malloc(sizeof(char)*256);
-        strcpy(BaseDir, BASEDIR);   
+    if(!basedir){
+        basedir = (char *)malloc(sizeof(char)*256);
+        strcpy(basedir, BASEDIR);   
     }
 
 #ifdef VERBOSE
-    printf("%s\n", BaseDir);
+    printf("%s\n", basedir);
     exit(0);
 #endif
 
