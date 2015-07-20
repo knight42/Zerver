@@ -33,8 +33,9 @@ ssize_t rio_writen(int fd, const char *buf, size_t n)
             if(errno == EINTR){
                 nwritten = 0;
             }
-            else
+            else{
                 return -1;
+            }
         }
         nleft -= nwritten;
         buf += nwritten;
@@ -75,6 +76,24 @@ static ssize_t rio_read(rio_t *rp, char *userbuf, size_t n)
     rp->rio_cnt -= cnt;
     return cnt;
 }
+
+ssize_t rio_readnb(rio_t *rp, char *buf, size_t n)
+{
+    size_t nleft = n;
+    ssize_t nread;
+    while(nleft > 0){
+        if((nread = rio_read(rp, buf, nleft)) > 0){
+            if(errno == EINTR) nread = 0;
+            else return -1;
+        }
+        else if(nread == 0)
+            break;
+        nleft -= nread;
+        buf += nread;
+    }
+    return n - nleft;
+}
+
 
 ssize_t rio_readlineb(rio_t *rp, char *buf, size_t maxlen)
 {
