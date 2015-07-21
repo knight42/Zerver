@@ -160,7 +160,7 @@ void serve_dynamic(int fd, char *filename, char *cgiargs)
     if((pid = fork()) == 0){
         setenv("QUERY_STR", cgiargs, 1);
         dup2(fd, STDOUT_FILENO);
-        execve(filename, emptylist, environ);
+        execve(filename, emptylist, __environ);
     }
     wait(NULL);
 }
@@ -252,11 +252,16 @@ void SIGPIPE_Handle(int sig){
 }
 
 void SIGCHLD_Handle(int sig){
+    /*
     int status, pid;
     pid = waitpid(-1, &status, WNOHANG);
     if (WIFEXITED(status)) {   
         printf("The child %d exit with code %d\n", pid, WEXITSTATUS(status));   
     }   
+    */
+    while(waitpid(-1, 0, WNOHANG) > 0)
+        ;
+    return;
 }
 
 int main(int argc, char *argv[]){
