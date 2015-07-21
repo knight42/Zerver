@@ -6,6 +6,7 @@
 #include <fcntl.h>  // open()
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include "config.h"
@@ -73,7 +74,7 @@ void disperror(int fd, const char *cause, const char *errnum,
     strcat(body, "<body bgcolor='#ffffff'>\r\n");
     sprintf(body, "%s<h1>%s: %s</h1>\r\n", body, errnum, shortmsg);
     sprintf(body, "%s<p>%s: %s</p>\r\n", body, longmsg, cause);
-    strcat(body, "<hr></hr><em>Zerver/1.0.0</em>");
+    strcat(body, "<hr/><em>Zerver/1.0.0</em>");
 
     sprintf(buf, "HTTP/1.0 %s %s\r\n", errnum, shortmsg);
     rio_writen(fd, buf, strlen(buf));
@@ -109,13 +110,24 @@ int parse_uri(char *uri, char *filename, char *cgiargs)
     }
 }
 
-void read_requesthdrs(rio_t *rp)
+void read_requesthdrs(rio_t *rp, char *cgiargs)
 {
-    char buf[BUFSIZ];
+    char buf[BUFSIZ], *p;
+    int has_content=0, nread=0;
     rio_readlineb(rp, buf, BUFSIZ);
     while(strcmp(buf, "\r\n")){
+        if(strcasestr(buf, "content-length")){
+            has_content = 1;
+            p = strchr(buf, ' ');
+            nread = atoi(p);
+        }
         rio_readlineb(rp, buf, BUFSIZ);
         printf("%s", buf);
+    }
+    if(has_content){
+        rio_readnb(rp, cgiargs, nread);
+        cgiargs[nread] = 0;
+        printf("%s\n", cgiargs);
     }
 }
 
@@ -140,7 +152,17 @@ void get_filetype(char *filename, char *filetype)
 
 void serve_dynamic(int fd, char *filename, char *cgiargs)
 {
-    ;
+    char buf[BUFSIZ], *emptylist[] = {NULL};
+    int pid;
+    sprintf(buf, "%s", "HTTP/1.0 200 OK\r\n");
+    strcat(buf, SERVER_STRING);
+    rio_writen(fd, buf, strlen(buf));
+    if((pid = fork()) == 0){
+        setenv("QUERY_STR", cgiargs, 1);
+        dup2(fd, STDOUT_FILENO);
+        execve(filename, emptylist, environ);
+    }
+    wait(NULL);
 }
 
 void serve_static(int fd, char *filename, long size)
@@ -167,20 +189,16 @@ void handle_request(int fd)
     char filename[BUFSIZ], cgiargs[BUFSIZ];
     int is_static;
     struct stat sbuf;
+    ssize_t nread;
     rio_t rio;
 
-
     rio_readinitb(&rio, fd);
-    rio_readlineb(&rio, buf, BUFSIZ);
-    sscanf(buf, "%s %s %s", method, uri, version);
+    nread = rio_readlineb(&rio, buf, BUFSIZ);
+    if(nread == 0) return;
 
-    /*
-    for(c = method; *c; ++c)
-        *c = upper(*c);
-    */
-    //
-    read_requesthdrs(&rio);
-    // 
+    sscanf(buf, "%s %s %s", method, uri, version);
+    read_requesthdrs(&rio, cgiargs);
+
     *method = upper(*method);
     switch(strhash(method)){
         case GET:
@@ -205,12 +223,40 @@ void handle_request(int fd)
             }
             break;
         case POST:
+            sprintf(filename, "%s%s", basedir, uri);
+            if(!(S_ISREG(sbuf.st_mode)) || !(S_IXUSR & sbuf.st_mode)){
+                disperror(fd, filename, "403", "Forbidden", "Zerver couldn't read this file.");
+                return;
+            }
+            serve_dynamic(fd, filename, cgiargs);
             break;
         case HEAD:
+            disperror(fd, "HEAD request", "200", "OK", "Succeed");
             break;
         default:
+            disperror(fd, "", "501", "Method Not Implemented", "");
             break;
     }
+    printf("%d done!\n", getpid());
+}
+
+static int CLIFD=0;
+
+void SIGPIPE_Handle(int sig){
+    //int res;
+    //res=close(CLIFD);
+    fprintf(stderr, "-----------------------------");
+    fprintf(stderr, "Recover!");
+    //printf("close result: %d\n",res);
+    fprintf(stderr, "-----------------------------");
+}
+
+void SIGCHLD_Handle(int sig){
+    int status, pid;
+    pid = waitpid(-1, &status, WNOHANG);
+    if (WIFEXITED(status)) {   
+        printf("The child %d exit with code %d\n", pid, WEXITSTATUS(status));   
+    }   
 }
 
 int main(int argc, char *argv[]){
@@ -221,6 +267,8 @@ int main(int argc, char *argv[]){
     
     //long cpucores = sysconf(_SC_NPROCESSORS_ONLN);
     
+    signal(SIGPIPE, SIGPIPE_Handle);
+
     while((opt=getopt(argc, argv, "xhp:w:")) != -1){
         char *c;
         struct stat sb;
@@ -265,10 +313,19 @@ int main(int argc, char *argv[]){
     listenfd = open_listenfd(&port);
     socklen_t cli_len=sizeof(cli_addr);;
     printf("listen port: %d\n", port);
+    int pid;
+    signal(SIGCHLD, SIGCHLD_Handle);
     while(1){
-        puts("I am listening~");
+        //printf("%d is listening~\n", getpid());
         connfd = accept(listenfd, (struct sockaddr*)&cli_addr, &cli_len);
-        handle_request(connfd);
+        if((pid=fork())==0){
+            close(listenfd);
+            //printf("I am %d\n", getpid());
+            CLIFD = connfd;
+            handle_request(connfd);
+            //printf("%d exit!\n", getpid());
+            exit(0);
+        }
         close(connfd);
     }
     return 0;
