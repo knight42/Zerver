@@ -70,8 +70,7 @@ static ssize_t rio_read(rio_t *rp, char *userbuf, size_t n)
     if(rp->rio_cnt < n){
         cnt = rp->rio_cnt;
     }
-    /* void * memcpy( void *restrict dest, const void *restrict src, int n ) */
-    memcpy(userbuf, rp->rio_bufptr, (int)cnt);
+    strncpy(userbuf, rp->rio_bufptr, (int)cnt);
     rp->rio_bufptr += cnt;
     rp->rio_cnt -= cnt;
     return cnt;
