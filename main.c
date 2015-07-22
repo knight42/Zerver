@@ -11,59 +11,108 @@
 #include <arpa/inet.h>
 #include "config.h"
 #include "rio.h"
+#include "sockfd.h"
 
 #define upper(a) ((a)<91?(a):(a)-('a'-'A'))
+#define strhash(s) (*(s))
+
+void disperror(int fd, const char *cause, const char *errnum,
+                const char *shortmsg, const char *longmsg);
+int parse_uri(char *uri, char *filename, char *cgiargs);
+void read_requesthdrs(rio_t *rp, char *cgiargs);
+void get_filetype(char *filename, char *filetype);
+void serve_dynamic(int fd, char *filename, char *cgiargs);
+void serve_static(int fd, char *filename, long size);
+void handle_request(int fd);
+
+void SIGPIPE_Handle(int sig){
+    //int res;
+    //res=close(CLIFD);
+    fprintf(stderr, "-----------------------------");
+    fprintf(stderr, "Recover!");
+    //printf("close result: %d\n",res);
+    fprintf(stderr, "-----------------------------");
+}
+
+void SIGCHLD_Handle(int sig){
+    /*
+    int status, pid;
+    pid = waitpid(-1, &status, WNOHANG);
+    if (WIFEXITED(status)) {   
+        printf("The child %d exit with code %d\n", pid, WEXITSTATUS(status));   
+    }   
+    */
+    // wait for all children
+    while(waitpid(-1, 0, WNOHANG) > 0) ;
+    return;
+}
+
 static char *basedir=NULL;
 
-#define strhash(s) (*(s))
-/*
-int strhash(char *s)
-{
-    return *s;
-}
-*/
+int main(int argc, char *argv[]){
+    int opt, listenfd, connfd;
+    uint16_t port=34696;
+    struct sockaddr_in cli_addr;
+    int isproxy=0;
+    
+    //long cpucores = sysconf(_SC_NPROCESSORS_ONLN);
+    
+    signal(SIGPIPE, SIGPIPE_Handle);
+    signal(SIGCHLD, SIGCHLD_Handle);
 
-void diehere(const char *prog){
-    perror(prog);
-    exit(1);
-}
-
-int open_listenfd(uint16_t *port)
-{
-    int serv_sockfd ,optval=1;
-    struct sockaddr_in serv_addr;
-
-    serv_sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if(serv_sockfd < 0){
-        diehere("socket");
-    }
-
-    // Eliminates "Address alrealy in use" error from bind
-    if(setsockopt(serv_sockfd, SOL_SOCKET, SO_REUSEADDR,
-                (const void *)&optval, sizeof(int)) < 0)
-        return -1;
-
-    memset(&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    serv_addr.sin_port = htons(*port);
-
-    if(bind(serv_sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0)
-        diehere("bind");
-
-    // get actual port when it is allocated dynamically
-    if(*port == 0){
-        socklen_t addrlen = sizeof(serv_addr);
-        if((getsockname(serv_sockfd, (struct sockaddr*)&serv_addr, &addrlen)) < 0){
-            diehere("getsockname");
+    while((opt = getopt(argc, argv, "xhp:w:")) != -1){
+        char *c;
+        struct stat sb;
+        switch(opt){
+            case 'p':
+                port = (uint16_t)atoi(optarg);
+                break;
+            case 'x':
+                isproxy=1;
+                break;
+            case 'w':
+                basedir = optarg;
+                c = basedir + strlen(basedir) - 1;
+                *c = (*c == '/') ? 0 : *c;
+                if(stat(basedir, &sb) < 0){
+                    diehere("stat");
+                }
+                if((sb.st_mode & S_IFMT) != S_IFDIR){
+                    fprintf(stderr, "Invalid working dir: %s\n", basedir);
+                    exit(1);
+                }
+                break;
+            default:
+                puts("Usage:");
+                printf("zerver -p port ");
+                printf("-w basedir ");
+                puts("");
+                exit(0);
         }
-        *port = ntohs(serv_addr.sin_port);
     }
 
-    if(listen(serv_sockfd, MAXLISTEN) < 0)
-        diehere("listen");
+    if(!basedir){
+        basedir = BASEDIR;
+    }
 
-    return serv_sockfd;
+#ifdef VERBOSE
+    printf("%s\n", basedir);
+    exit(0);
+#endif
+
+    listenfd = open_listenfd(&port);
+    socklen_t cli_len=sizeof(cli_addr);;
+    printf("listen port: %d\n", port);
+    while(1){
+        connfd = accept(listenfd, (struct sockaddr*)&cli_addr, &cli_len);
+        if(fork() == 0){
+            close(listenfd);
+            handle_request(connfd);
+            exit(0);
+        }
+        close(connfd);
+    }
+    return 0;
 }
 
 void disperror(int fd, const char *cause, const char *errnum,
@@ -102,8 +151,6 @@ int parse_uri(char *uri, char *filename, char *cgiargs)
     }
     else{
         *cgiargs = 0;
-        if(uri[strlen(uri)-1] == '/')
-            strcat(uri, "index.html");
 
         sprintf(filename, "%s%s", basedir, uri);
         return 1;
@@ -122,12 +169,16 @@ void read_requesthdrs(rio_t *rp, char *cgiargs)
             nread = atoi(p);
         }
         rio_readlineb(rp, buf, BUFSIZ);
+        #ifdef VERBOSE
         printf("%s", buf);
+        #endif
     }
     if(has_content){
         rio_readnb(rp, cgiargs, nread);
         cgiargs[nread] = 0;
+        #ifdef VERBOSE
         printf("%s\n", cgiargs);
+        #endif
     }
 }
 
@@ -153,11 +204,10 @@ void get_filetype(char *filename, char *filetype)
 void serve_dynamic(int fd, char *filename, char *cgiargs)
 {
     char buf[BUFSIZ], *emptylist[] = {NULL};
-    int pid;
     sprintf(buf, "%s", "HTTP/1.0 200 OK\r\n");
     strcat(buf, SERVER_STRING);
     rio_writen(fd, buf, strlen(buf));
-    if((pid = fork()) == 0){
+    if(fork() == 0){
         setenv("QUERY_STR", cgiargs, 1);
         dup2(fd, STDOUT_FILENO);
         execve(filename, emptylist, __environ);
@@ -185,8 +235,8 @@ void serve_static(int fd, char *filename, long size)
 
 void handle_request(int fd)
 {
-    char buf[BUFSIZ], method[BUFSIZ]={0}, uri[BUFSIZ], version[BUFSIZ];
-    char filename[BUFSIZ], cgiargs[BUFSIZ];
+    char buf[BUFSIZ], method[BUFSIZ], uri[BUFSIZ], version[BUFSIZ], \
+         filename[BUFSIZ], cgiargs[BUFSIZ];
     int is_static;
     struct stat sbuf;
     ssize_t nread;
@@ -194,9 +244,13 @@ void handle_request(int fd)
 
     rio_readinitb(&rio, fd);
     nread = rio_readlineb(&rio, buf, BUFSIZ);
+    // blank uri
     if(nread == 0) return;
 
     sscanf(buf, "%s %s %s", method, uri, version);
+    if(uri[strlen(uri)-1] == '/')
+        strcat(uri, "index.html");
+
     read_requesthdrs(&rio, cgiargs);
 
     *method = upper(*method);
@@ -237,101 +291,4 @@ void handle_request(int fd)
             disperror(fd, "", "501", "Method Not Implemented", "");
             break;
     }
-    printf("%d done!\n", getpid());
-}
-
-static int CLIFD=0;
-
-void SIGPIPE_Handle(int sig){
-    //int res;
-    //res=close(CLIFD);
-    fprintf(stderr, "-----------------------------");
-    fprintf(stderr, "Recover!");
-    //printf("close result: %d\n",res);
-    fprintf(stderr, "-----------------------------");
-}
-
-void SIGCHLD_Handle(int sig){
-    /*
-    int status, pid;
-    pid = waitpid(-1, &status, WNOHANG);
-    if (WIFEXITED(status)) {   
-        printf("The child %d exit with code %d\n", pid, WEXITSTATUS(status));   
-    }   
-    */
-    while(waitpid(-1, 0, WNOHANG) > 0)
-        ;
-    return;
-}
-
-int main(int argc, char *argv[]){
-    int opt, listenfd, connfd;
-    uint16_t port=34696;
-    struct sockaddr_in cli_addr;
-    int isproxy=0;
-    
-    //long cpucores = sysconf(_SC_NPROCESSORS_ONLN);
-    
-    signal(SIGPIPE, SIGPIPE_Handle);
-
-    while((opt=getopt(argc, argv, "xhp:w:")) != -1){
-        char *c;
-        struct stat sb;
-        switch(opt){
-            case 'p':
-                port = (uint16_t)atoi(optarg);
-                break;
-            case 'x':
-                isproxy=1;
-                break;
-            case 'w':
-                basedir = optarg;
-                c = basedir + strlen(basedir) - 1;
-                *c = (*c == '/') ? 0 : *c;
-                if(stat(basedir, &sb) < 0){
-                    diehere("stat");
-                }
-                if((sb.st_mode & S_IFMT) != S_IFDIR){
-                    fprintf(stderr, "Invalid working dir: %s\n", basedir);
-                    exit(1);
-                }
-                break;
-            default:
-                puts("Usage:");
-                printf("zerver -p port ");
-                printf("-w basedir ");
-                puts("");
-                exit(0);
-        }
-    }
-
-    if(!basedir){
-        basedir = (char *)malloc(sizeof(char)*256);
-        strcpy(basedir, BASEDIR);   
-    }
-
-#ifdef VERBOSE
-    printf("%s\n", basedir);
-    exit(0);
-#endif
-
-    listenfd = open_listenfd(&port);
-    socklen_t cli_len=sizeof(cli_addr);;
-    printf("listen port: %d\n", port);
-    int pid;
-    signal(SIGCHLD, SIGCHLD_Handle);
-    while(1){
-        //printf("%d is listening~\n", getpid());
-        connfd = accept(listenfd, (struct sockaddr*)&cli_addr, &cli_len);
-        if((pid=fork())==0){
-            close(listenfd);
-            //printf("I am %d\n", getpid());
-            CLIFD = connfd;
-            handle_request(connfd);
-            //printf("%d exit!\n", getpid());
-            exit(0);
-        }
-        close(connfd);
-    }
-    return 0;
 }
