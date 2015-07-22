@@ -1,4 +1,3 @@
-#define MAXLISTEN 3
 #define SERVER_STRING "Server: Zerver/1.0.0\r\n"
 
 #define GET 71

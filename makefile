@@ -1,12 +1,12 @@
 .PHONY: all clean
+CFLAGS := ""
 
 all:zerver
+zerver: main.c rio.c sockfd.c
+	clang $? -g -o $@
 
-zerver:main.c rio.c client
-	clang main.c rio.c -g -o $@
-
-client:client.c
-	clang $< -o $@
+client:client.c sockfd.c
+	clang $? -o $@
 
 #echo:echo.c rio.c
 #	clang echo.c rio.c -o echo2
