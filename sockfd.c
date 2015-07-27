@@ -13,7 +13,7 @@ int open_listenfd(uint16_t *port)
     // Eliminates "Address alrealy in use" error from bind
     if(setsockopt(serv_sockfd, SOL_SOCKET, SO_REUSEADDR,
                 (const void *)&optval, sizeof(int)) < 0)
-        return -1;
+        diehere("setsockopt");
 
     bzero(&serv_addr, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
@@ -43,29 +43,32 @@ int open_clientfd(const char *hostorip, uint16_t port)
     int clifd;
     struct hostent *hp;
     struct sockaddr_in servaddr;
-
+    int netaddr;
+   
     if((clifd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        return -1;
+        diehere("socket");
 
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
-
-    if(((int)inet_addr(hostorip)) == -1){  // hostname
-        // in netdb.h
+    
+    netaddr = (int)inet_addr(hostorip);
+    if(netaddr == -1){
+        // hostname
         if((hp = gethostbyname(hostorip)) == NULL)
-            return -2;
+            diehere("gethostbyname");
         strncpy((char *)hp->h_addr_list[0], 
                 (char *)&servaddr.sin_addr.s_addr,
                 hp->h_length);
     }
-    else{  // ip address
-        servaddr.sin_addr.s_addr = inet_addr(hostorip);
+    else{
+        // ip address
+        servaddr.sin_addr.s_addr = (in_addr_t)netaddr;  // unsigned int
     }
 
     servaddr.sin_port = htons(port);
 
     if(connect(clifd, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0)
-        return -1;
+        diehere("connect");
 
     return clifd;
 }

@@ -56,6 +56,7 @@ static ssize_t rio_read(rio_t *rp, char *userbuf, size_t n)
     ssize_t cnt;
     while(rp->rio_cnt <= 0){
         /* ssize_t read( int fd, void *buf, int nbytes ) */
+        /* fill the buffer */
         rp->rio_cnt = read(rp->rio_fd, rp->rio_buf, sizeof(rp->rio_buf));
         if(rp->rio_cnt < 0){
             if(errno != EINTR)
@@ -113,6 +114,7 @@ ssize_t rio_readlineb(rio_t *rp, char *buf, size_t maxlen)
         // Error occurs
         else return -1;
     }
+    // end the buffer with '\0'
     *buf = 0;
     return n;
 }
