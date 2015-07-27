@@ -1,27 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netdb.h>
 #include "sockfd.h"
 
 int main(int argc, char *argv[]){
     int sockfd;
     char buffer[BUFSIZ];
-    uint16_t port;
+    uint16_t port=9801;
     
     if(argc == 2)
         port=(uint16_t)atoi(argv[1]);
-    else
-        port=9801;
 
     sockfd=open_clientfd("localhost", port);
-    if(sockfd<0){
-        fprintf(stderr, "Fail!\n");
-        exit(1);
-    }
+
     ssize_t res;
     while(1){
         printf("enter some text: ");
