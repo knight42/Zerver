@@ -12,6 +12,7 @@
 #include "config.h"
 #include "rio.h"
 #include "sockfd.h"
+#include "misc.h"
 
 #define upper(a) ((a)<91?(a):(a)-('a'-'A'))
 #define strhash(s) (*(s))
@@ -25,29 +26,7 @@ void serve_dynamic(int fd, char *filename, char *cgiargs);
 void serve_static(int fd, char *filename, long size);
 void handle_request(int fd);
 
-void SIGPIPE_Handle(int sig){
-    //int res;
-    //res=close(CLIFD);
-    fprintf(stderr, "-----------------------------");
-    fprintf(stderr, "Recover!");
-    //printf("close result: %d\n",res);
-    fprintf(stderr, "-----------------------------");
-}
-
-void SIGCHLD_Handle(int sig){
-    /*
-    int status, pid;
-    pid = waitpid(-1, &status, WNOHANG);
-    if (WIFEXITED(status)) {   
-        printf("The child %d exit with code %d\n", pid, WEXITSTATUS(status));   
-    }   
-    */
-    // wait for all children
-    while(waitpid(-1, 0, WNOHANG) > 0) ;
-    return;
-}
-
-static char *basedir=NULL;
+static char *basedir=BASEDIR;
 
 int main(int argc, char *argv[]){
     int opt, listenfd, connfd;
@@ -56,7 +35,7 @@ int main(int argc, char *argv[]){
     int isproxy=0;
     
     //long cpucores = sysconf(_SC_NPROCESSORS_ONLN);
-    
+
     signal(SIGPIPE, SIGPIPE_Handle);
     signal(SIGCHLD, SIGCHLD_Handle);
 
@@ -91,13 +70,8 @@ int main(int argc, char *argv[]){
         }
     }
 
-    if(!basedir){
-        basedir = BASEDIR;
-    }
-
 #ifdef VERBOSE
-    printf("%s\n", basedir);
-    exit(0);
+    printf("working dir: %s\n", basedir);
 #endif
 
     listenfd = open_listenfd(&port);
@@ -108,6 +82,7 @@ int main(int argc, char *argv[]){
         if(fork() == 0){
             close(listenfd);
             handle_request(connfd);
+            close(connfd);
             exit(0);
         }
         close(connfd);
@@ -244,6 +219,11 @@ void handle_request(int fd)
 
     rio_readinitb(&rio, fd);
     nread = rio_readlineb(&rio, buf, BUFSIZ);
+
+    #ifdef VERBOSE
+    printf("read from client:\n%s", buf);
+    #endif
+
     // blank uri
     if(nread == 0) return;
 
