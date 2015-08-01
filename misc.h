@@ -3,12 +3,8 @@
 #include <stdio.h>
 
 void SIGPIPE_Handle(int sig){
-    //int res;
-    //res=close(CLIFD);
-    fprintf(stderr, "-----------------------------");
-    fprintf(stderr, "Recover!");
-    //printf("close result: %d\n",res);
-    fprintf(stderr, "-----------------------------");
+    fprintf(stderr, "------------------\nBroken Pipe\n");
+    fprintf(stderr, "------------------\n");
 }
 
 void SIGCHLD_Handle(int sig){
@@ -21,5 +17,4 @@ void SIGCHLD_Handle(int sig){
     */
     // wait for all children
     while(waitpid(-1, 0, WNOHANG) > 0) ;
-    return;
 }

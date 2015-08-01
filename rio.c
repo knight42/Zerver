@@ -10,6 +10,9 @@ ssize_t rio_readn(int fd, char *buf, size_t n)
             if(errno == EINTR){
                 nread = 0;
             }
+            else if(errno == EAGAIN){
+                return 0;
+            }
             else{
                 // errno set by read()
                 return -1;
@@ -32,6 +35,9 @@ ssize_t rio_writen(int fd, const char *buf, size_t n)
         if((nwritten = write(fd, buf, nleft)) <= 0){
             if(errno == EINTR){
                 nwritten = 0;
+            }
+            else if(errno == EAGAIN){
+                return 0;
             }
             else{
                 return -1;

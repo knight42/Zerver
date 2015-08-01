@@ -6,13 +6,13 @@
 #include <fcntl.h>  // open()
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/wait.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include "config.h"
 #include "rio.h"
 #include "sockfd.h"
 #include "misc.h"
+#include "epoll.h"
 
 #define upper(a) ((a)<91?(a):(a)-('a'-'A'))
 #define strhash(s) (*(s))
@@ -26,38 +26,38 @@ void serve_dynamic(int fd, char *filename, char *cgiargs);
 void serve_static(int fd, char *filename, long size);
 void handle_request(int fd);
 
-static char *basedir=BASEDIR;
+static char *basedir=NULL;
+
+#define VERBOSE
 
 int main(int argc, char *argv[]){
+    struct sockaddr_in cli_addr;
+    socklen_t cli_len=sizeof(cli_addr);;
     int opt, listenfd, connfd;
     uint16_t port=34696;
-    struct sockaddr_in cli_addr;
-    int isproxy=0;
+    char *dir=BASEDIR;
     
     //long cpucores = sysconf(_SC_NPROCESSORS_ONLN);
 
     signal(SIGPIPE, SIGPIPE_Handle);
     signal(SIGCHLD, SIGCHLD_Handle);
 
-    while((opt = getopt(argc, argv, "xhp:w:")) != -1){
+    while((opt = getopt(argc, argv, "hp:w:")) != -1){
         char *c;
         struct stat sb;
         switch(opt){
             case 'p':
                 port = (uint16_t)atoi(optarg);
                 break;
-            case 'x':
-                isproxy=1;
-                break;
             case 'w':
-                basedir = optarg;
-                c = basedir + strlen(basedir) - 1;
+                dir = optarg;
+                c = dir + strlen(dir) - 1;
                 *c = (*c == '/') ? 0 : *c;
-                if(stat(basedir, &sb) < 0){
+                if(stat(dir, &sb) < 0){
                     diehere("stat");
                 }
                 if((sb.st_mode & S_IFMT) != S_IFDIR){
-                    fprintf(stderr, "Invalid working dir: %s\n", basedir);
+                    fprintf(stderr, "Invalid working dir: %s\n", dir);
                     exit(1);
                 }
                 break;
@@ -70,13 +70,15 @@ int main(int argc, char *argv[]){
         }
     }
 
+    basedir = dir;
+
 #ifdef VERBOSE
     printf("working dir: %s\n", basedir);
 #endif
 
     listenfd = open_listenfd(&port);
-    socklen_t cli_len=sizeof(cli_addr);;
     printf("listen port: %d\n", port);
+    /*
     while(1){
         connfd = accept(listenfd, (struct sockaddr*)&cli_addr, &cli_len);
         if(fork() == 0){
@@ -87,6 +89,42 @@ int main(int argc, char *argv[]){
         }
         close(connfd);
     }
+    */
+    struct epoll_event ev, events[MAXEVENTS];
+    int efd, nfds, i;
+    SetNonBlocking(listenfd);
+    efd = epoll_create1(0);
+    ev.data.fd = listenfd;
+    ev.events = EPOLLIN | EPOLLET;
+    epoll_ctl(efd, EPOLL_CTL_ADD, listenfd, &ev);
+    for(;;){
+        nfds = epoll_wait(efd, events, MAXEVENTS, -1);
+        for(i=0; i<nfds; ++i){
+            if(events[i].events & (EPOLLHUP | EPOLLERR)){
+                fprintf(stderr, "error on fd: %d\n", events[i].data.fd);
+                close(events[i].data.fd);
+                continue;
+            }
+            if(events[i].data.fd == listenfd){
+                bzero(&cli_addr, sizeof(cli_addr));
+                connfd = accept(listenfd, (struct sockaddr*)&cli_addr, &cli_len);
+                SetNonBlocking(connfd);
+                ev.data.fd = connfd;
+                epoll_ctl(efd, EPOLL_CTL_ADD, connfd, &ev);
+                #ifdef VERBOSE
+                printf("new client fd: %d\n", connfd);
+                #endif
+            }
+            else{
+                handle_request(events[i].data.fd);
+                close(events[i].data.fd);
+                #ifdef VERBOSE
+                printf("client fd: %d leave\n", events[i].data.fd);
+                #endif
+            }
+        }
+    }
+
     return 0;
 }
 
@@ -229,7 +267,7 @@ void handle_request(int fd)
 
     sscanf(buf, "%s %s %s", method, uri, version);
     if(uri[strlen(uri)-1] == '/')
-        strcat(uri, "index.html");
+        strncat(uri, "index.html", BUFSIZ);
 
     read_requesthdrs(&rio, cgiargs);
 
