@@ -3,8 +3,7 @@
 #include <stdio.h>
 
 void SIGPIPE_Handle(int sig){
-    fprintf(stderr, "------------------\nBroken Pipe\n");
-    fprintf(stderr, "------------------\n");
+    fprintf(stderr, "\nBroken Pipe\n");
 }
 
 void SIGCHLD_Handle(int sig){

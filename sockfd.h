@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <netdb.h>
-#define MAXLISTEN 5
+#define MAXLISTEN 1024
 #define diehere(prog) do{ perror(prog); exit(1); }while(0)
 
 int open_listenfd(uint16_t *port);
