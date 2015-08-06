@@ -8,5 +8,4 @@
 #define DELETE 68
 #define TRACE 84
 
-#define BASEDIR getenv("PWD")
 #define MAXEVENTS 1024

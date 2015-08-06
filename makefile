@@ -10,5 +10,5 @@ client:client.c sockfd.c
 	clang $^ -o $@
 
 clean:
-	find . -maxdepth 2 -type f -executable -exec rm -Iv {} \;
+	@rm zerver client 2>/dev/null || true
 
