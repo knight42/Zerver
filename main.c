@@ -1,15 +1,16 @@
-#include <errno.h>
-#include <fcntl.h>
-#include <signal.h>
+#define  _GNU_SOURCE 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <signal.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/epoll.h>
-#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <sys/socket.h>
 #include <unistd.h>
 #include "config.h"
 #include "rio.h"
@@ -19,7 +20,7 @@
 #define strhash(s) (*(s))
 
 void disperror(int fd, const char *cause, const char *errnum,
-                const char *shortmsg, const char *longmsg);
+               const char *shortmsg, const char *longmsg);
 int parse_uri(char *uri, char *filename, char *cgiargs);
 void read_requesthdrs(rio_t *rp, char *cgiargs);
 void get_filetype(char *filename, char *filetype);
@@ -33,14 +34,13 @@ void SigHandle(int sig){
             fprintf(stderr, "\nBroken Pipe\n");
             break;
         case SIGCHLD:
+            /* wait for all child processes */
             while(waitpid(-1, 0, WNOHANG) > 0) ;
             break;
     }
 }
 
 static char basedir[BUFSIZ]={0};
-
-#define VERBOSE
 
 int main(int argc, char *argv[]){
     struct sockaddr_in cli_addr;
@@ -82,9 +82,8 @@ int main(int argc, char *argv[]){
     }
 
     if(*basedir == 0){
-        int l = strlen(argv[0]);
         strncpy(basedir, argv[0], BUFSIZ);
-        char *c = basedir + l;
+        char *c = basedir + strlen(argv[0]);
         for(; *c != '/'; --c);
         *c = 0;
     }
@@ -94,30 +93,37 @@ int main(int argc, char *argv[]){
 #endif
 
     listenfd = open_listenfd(&port);
+    printf("listen port: %d\n", port);
     {
+        /* set listen socket nonblocking */
         int flags;
         flags = fcntl(listenfd, F_GETFD);
         flags |= O_NONBLOCK;
         fcntl(listenfd, F_SETFD, flags);
     }
 
-    printf("listen port: %d\n", port);
-
     struct epoll_event ev, events[MAXEVENTS];
     int efd, nfds, i;
     efd = epoll_create1(0);
     ev.data.fd = listenfd;
-    //ev.events = EPOLLIN | EPOLLOUT | EPOLLET;
+
+    /* by default, epoll behave as level-triggered */
     ev.events = EPOLLIN;
+
     epoll_ctl(efd, EPOLL_CTL_ADD, listenfd, &ev);
     for(;;){
+        #ifdef VERBOSE
         puts("waiting...");
+        #endif
         nfds = epoll_wait(efd, events, MAXEVENTS, -1);
+        #ifdef VERBOSE
         puts("new event!");
+        #endif
         for(i=0; i<nfds; ++i){
             if(events[i].events & (EPOLLHUP | EPOLLERR | EPOLLRDHUP) ||
                     !(events[i].events & EPOLLIN)){
                 fprintf(stderr, "error on fd: %d: %d\n", events[i].data.fd, events[i].events);
+                perror("epoll events error");
                 close(events[i].data.fd);
                 continue;
             }
@@ -127,7 +133,6 @@ int main(int argc, char *argv[]){
                                  &cli_len, SOCK_NONBLOCK | SOCK_CLOEXEC);
                 ev.data.fd = connfd;
                 if(epoll_ctl(efd, EPOLL_CTL_ADD, connfd, &ev) < 0){
-                    fprintf(stderr, "epoll_ctl add error\n");
                     perror("epoll_ctl add");
                 }
                 #ifdef VERBOSE
@@ -136,7 +141,9 @@ int main(int argc, char *argv[]){
             }
             else{
                 handle_request(events[i].data.fd);
-                /* should we delete the connection fd after request is finished?
+                /*
+                should we delete the connect fd after request is finished?
+
                 if(epoll_ctl(efd, EPOLL_CTL_DEL, events[i].data.fd, NULL) < 0){
                     fprintf(stderr, "epoll_ctl del error\n");
                     perror("epoll_ctl del");
