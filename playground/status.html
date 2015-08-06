@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>USTC Mirrors Status</title>
+    <script src="jquery-2.0.3.min.js"></script>
+    <script src="jquery.tablesorter.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <script>
+      var getRealSize = function(node) {
+        if (node.childNodes.length > 1) {
+          return node.childNodes[1].innerHTML;
+        } else {
+          return node.innerHTML;
+        }
+      }
+      $(document).ready(function() {
+        $(".tbl-status").addClass("tablesorter");
+        $(".tbl-status").tablesorter({sortList: [[0, 0]],
+                                      textExtraction: getRealSize,
+                                      headers: {5: {sorter: 'digit'}}});
+        $(".td-archive-running").css("background", "#FFE773");
+        $(".td-archive-frozen").css("background", "#EEEEEE");
+        $(".td-archive-unmanaged").css("background", "#CCCCCC");
+        $(".td-archive-fail").css("background", "#FE3F44");
+        $(".td-archive-unknown").css("background", "#FE7276");
+        $(".td-archive-fail").each(function() {
+          $(this).mouseenter(function() {
+            var position;
+            position = $(this).offset();
+            position.top += 30;
+            position.left += 15;
+            $("p", this).css("display", "block");
+            $("p", this).css("position", "absolute");
+            $("p", this).offset(position);
+          })
+          $(this).mouseleave(function() {
+            $("p", this).css("display", "none");
+          })
+        })
+      })
+    </script>
+</head>
+<body>
+<p><span id='update-time'> Update time:  2015-07-14 08:30:02 </span></p>
+<table class='tbl-status'><thead><tr>
+<th>Archive name</th>
+<th>Sync status</th>
+<th>Sync time</th>
+<th>Exit status</th>
+<th>Last success</th>
+<th>Upstream</th>
+<th>Size</th>
+</tr></thead><tbody>
+<tr> <td> <a href="/anthon/">AOSC OS</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 02:59:09</td> <td class='td-archive-fail'>fail<p style='display:none'>[0]rsync error: error in socket IO (code 10) at clientserver.c(128) [Receiver=3.1.1]
+<br></p></td> <td> 2015-07-12 03:00:09 </td> <td> rsync://mirror.anthonos.org/anthon/ </td> <td>-<p style='display:none'>0</p></td> </tr>
+
+<tr> <td> <a href="/archlinux/">Arch Linux</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 07:50:54</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 07:50:43 </td> <td> rsync://mirror.de.leaseweb.net/archlinux/ </td> <td>51.09 GB<p style='display:none'>54862057772</p></td> </tr>
+
+<tr> <td> <a href="/archlinuxarm/">Arch Linux ARM</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 06:03:51</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 06:03:51 </td> <td> rsync://ftp.halifax.rwth-aachen.de/archlinux-arm/ </td> <td>47.03 GB<p style='display:none'>50497828736</p></td> </tr>
+
+<tr> <td> <a href="/archlinuxcn/">Arch Linux CN Repo</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 06:11:18</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 06:11:18 </td> <td> rsync://sync.repo.archlinuxcn.org/repo/ </td> <td>14.76 GB<p style='display:none'>15848196268</p></td> </tr>
+
+<tr> <td> <a href="/archive.raspberrypi.org/">archive.raspberrypi.org</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-13 16:24:28</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-13 16:24:28 </td> <td> http://archive.raspberrypi.org/// </td> <td>-<p style='display:none'>0</p></td> </tr>
+
+<tr> <td> <a href="/backtrack/iso/">Back Track ISO</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 05:55:10</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 05:55:10 </td> <td> rsync://ftp.halifax.rwth-aachen.de/backtrack/ </td> <td>48.26 GB<p style='display:none'>51818546209</p></td> </tr>
+
+<tr> <td> <a href="/centos/">CentOS</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 07:12:03</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 07:11:54 </td> <td> rsync://us-msync.centos.org/CentOS/ </td> <td>107.70 GB<p style='display:none'>115642132405</p></td> </tr>
+
+<tr> <td> <a href="/chakra/">Chakra</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 05:31:28</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 05:31:28 </td> <td> rsync://rsync.chakraos.org/packages/ </td> <td>45.63 GB<p style='display:none'>48989784652</p></td> </tr>
+
+<tr> <td> <a href="/debian/">Debian</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 06:15:14</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 06:15:14 </td> <td> rsync://syncproxy.wna.debian.org/debian/ </td> <td>1.21 TB<p style='display:none'>1325008604249</p></td> </tr>
+
+<tr> <td> <a href="/debian-backports/">Debian Backports</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 07:00:33</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 07:00:34 </td> <td> rsync://backports-master.debian.org/debian-backports/ </td> <td>31.06 GB<p style='display:none'>33347754470</p></td> </tr>
+
+<tr> <td> <a href="/debian-cd/">Debian CD</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 00:25:56</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> None </td> <td> rsync://cdimage.debian.org/private/debian-cd/ </td> <td>274.00  B<p style='display:none'>274</p></td> </tr>
+
+<tr> <td> <a href="/debian-multimedia/">Debian Multimedia</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 02:45:53</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 02:45:53 </td> <td> rsync://www.deb-multimedia.org/deb/ </td> <td>11.82 GB<p style='display:none'>12690735586</p></td> </tr>
+
+<tr> <td> <a href="/debian-security/">Debian Security</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 08:00:18</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 08:00:18 </td> <td> rsync://security.debian.org/debian-security </td> <td>100.28 GB<p style='display:none'>107680001559</p></td> </tr>
+
+<tr> <td> <a href="/debian-volatile/">Debian Volatile</a> </td> <td class='td-archive-frozen'>frozen<p style='display:none'>50</p></td> <td>-</td> <td class='td-archive-frozen'>frozen<p style='display:none'>[50]</p></td> <td> None </td> <td> Upstream frozen, no update any more. </td> <td>722.79 MB<p style='display:none'>757899384</p></td> </tr>
+
+<tr> <td> <a href="/deepin/">Deepin</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 05:40:02</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 05:40:02 </td> <td> rsync://packages.linuxdeepin.com/packages/ </td> <td>28.34 GB<p style='display:none'>30428891446</p></td> </tr>
+
+<tr> <td> <a href="/deepin-cd/">Deepin CD</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 01:15:06</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 01:15:06 </td> <td> rsync://packages.linuxdeepin.com/cdimage/ </td> <td>98.42 GB<p style='display:none'>105680623408</p></td> </tr>
+
+<tr> <td> <a href="/emdebian/">Embedded Debian</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 02:27:20</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 02:27:20 </td> <td> rsync://ftp.uk.debian.org/emdebian/ </td> <td>36.54 GB<p style='display:none'>39237910037</p></td> </tr>
+
+<tr> <td> <a href="/epel/">EPEL</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 03:07:51</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 03:07:50 </td> <td> rsync://dl.fedoraproject.org/fedora-epel/ </td> <td>145.82 GB<p style='display:none'>156578134244</p></td> </tr>
+
+<tr> <td> <a href="/fedora/linux/">Fedora Linux</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 07:33:42</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 07:32:19 </td> <td> rsync://dl.fedoraproject.org/fedora-enchilada/linux/ </td> <td>1.95 TB<p style='display:none'>2143717970885</p></td> </tr>
+
+<tr> <td> <a href="/freebsd/">FreeBSD</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 05:26:31</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 05:26:31 </td> <td> rsync://ftp14.FreeBSD.org/FreeBSD/ </td> <td>346.87 GB<p style='display:none'>372448099938</p></td> </tr>
+
+<tr> <td> <a href="/gentoo/">Gentoo</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 05:10:18</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 05:10:18 </td> <td> rsync://ftp.ussg.iu.edu/gentoo-distfiles/ </td> <td>280.40 GB<p style='display:none'>301081869291</p></td> </tr>
+
+<tr> <td> <a href="/gentoo-portage/">Gentoo Portage</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 05:10:14</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 05:10:14 </td> <td> rsync://rsync.us.gentoo.org/gentoo-portage/ </td> <td>327.12 MB<p style='display:none'>343013582</p></td> </tr>
+
+<tr> <td> <a href="/gnome/">Gnome</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 05:31:18</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 05:31:18 </td> <td> rsync://master.gnome.org/gnomeftp/ </td> <td>165.93 GB<p style='display:none'>178165004833</p></td> </tr>
+
+<tr> <td> <a href="/gnu/">GNU</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 03:45:43</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 03:45:43 </td> <td> rsync://mirror.team-cymru.org/gnu/ </td> <td>44.63 GB<p style='display:none'>47918152872</p></td> </tr>
+
+<tr> <td> <a href="/kali/">Kali</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 07:39:10</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 07:39:10 </td> <td> rsync://kali.cs.nctu.edu.tw/kali/ </td> <td>426.06 GB<p style='display:none'>457483359708</p></td> </tr>
+
+<tr> <td> <a href="/kali-images/">Kali Images</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 03:13:04</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 03:13:04 </td> <td> rsync://kali.cs.nctu.edu.tw/kali-images/ </td> <td>29.26 GB<p style='display:none'>31420589895</p></td> </tr>
+
+<tr> <td> <a href="/kali-security/">Kali Security</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 08:13:40</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 08:13:40 </td> <td> rsync://kali.cs.nctu.edu.tw/kali-security/ </td> <td>26.00 GB<p style='display:none'>27919787145</p></td> </tr>
+
+<tr> <td> <a href="/kde/">KDE</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 06:27:33</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 06:27:33 </td> <td> rsync://master.kde.org/kdeftp/ </td> <td>203.70 GB<p style='display:none'>218720945450</p></td> </tr>
+
+<tr> <td> <a href="/kde-application/">KDE Application</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-13 21:12:18</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-13 21:12:18 </td> <td> rsync://master.kde.org/applicationdata/ </td> <td>172.20 GB<p style='display:none'>184902601548</p></td> </tr>
+
+<tr> <td> <a href="/kernel.org/">kernel.org</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 02:48:48</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 02:48:48 </td> <td> rsync://ftp.ubuntu-tw.org/kernel.org/ </td> <td>305.01 GB<p style='display:none'>327505753847</p></td> </tr>
+
+<tr> <td> <a href="/knoppix/">Knoppix</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-13 10:05:09</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-13 10:05:08 </td> <td> rsync://ftp2.de.debian.org/knoppix/ </td> <td>5.54 GB<p style='display:none'>5948124518</p></td> </tr>
+
+<tr> <td> <a href="/knoppix-dvd/">Knoppix DVD</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-13 11:15:09</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-13 11:15:09 </td> <td> rsync://ftp2.de.debian.org/knoppix-dvd/ </td> <td>15.91 GB<p style='display:none'>17085093852</p></td> </tr>
+
+<tr> <td> <a href="/lfs/">LFS</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 00:25:14</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 00:25:14 </td> <td> rsync://mirrors-usa.go-parts.com/mirrors/lfs/ </td> <td>8.68 GB<p style='display:none'>9321162467</p></td> </tr>
+
+<tr> <td> <a href="/linuxmint/">LinuxMint</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 07:33:15</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 07:33:14 </td> <td> rsync://rsync-packages.linuxmint.com/packages/ </td> <td>26.46 GB<p style='display:none'>28416244851</p></td> </tr>
+
+<tr> <td> <a href="/linuxmint-cd/">LinuxMint CD</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 01:55:08</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 01:55:08 </td> <td> rsync://ftp.heanet.ie/pub/linuxmint.com/ </td> <td>204.39 GB<p style='display:none'>219457712192</p></td> </tr>
+
+<tr> <td> <a href="/loongson/">Loongson</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 05:35:09</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 05:35:09 </td> <td> rsync://rsync.anheng.com.cn/loongson/ </td> <td>12.64 GB<p style='display:none'>13569065087</p></td> </tr>
+
+<tr> <td> <a href="/loongson2f/">Loongson2F</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 08:05:08</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 08:05:08 </td> <td> rsync://rsync.anheng.com.cn/loongson2f/ </td> <td>10.68 GB<p style='display:none'>11469750367</p></td> </tr>
+
+<tr> <td> <a href="/bjlx/">BJLX</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-13 12:45:04</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-13 12:45:04 </td> <td> rsync://rsync.anheng.com.cn/bjlx/ </td> <td>5.35 GB<p style='display:none'>5746919744</p></td> </tr>
+
+<tr> <td> <a href="/macports/">MacPorts</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 07:16:48</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 07:16:48 </td> <td> rsync://rsync.macports.org/release/ </td> <td>429.78 MB<p style='display:none'>450658639</p></td> </tr>
+
+<tr> <td> <a href="/manjaro/">manjaro</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 04:28:00</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 04:28:00 </td> <td> rsync://ftp.tsukuba.wide.ad.jp/manjaro/ </td> <td>45.06 GB<p style='display:none'>48378542027</p></td> </tr>
+
+<tr> <td> <a href="/mariadb/">MariaDB</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 05:58:54</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 05:58:54 </td> <td> rsync://rsync.osuosl.org/mariadb/ </td> <td>121.72 GB<p style='display:none'>130698112425</p></td> </tr>
+
+<tr> <td> <a href="/monitoring-plugins/">Monitoring Plugins</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-13 21:37:09</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-13 21:37:09 </td> <td> rsync://rsync.monitoring-plugins.org/plugins/ </td> <td>81.20 MB<p style='display:none'>85140730</p></td> </tr>
+
+<tr> <td> <a href="/opensuse/">OpenSUSE</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 08:12:45</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 08:12:42 </td> <td> rsync://stage.opensuse.org/opensuse-full-with-factory/opensuse/ </td> <td>483.34 GB<p style='display:none'>518983160792</p></td> </tr>
+
+<tr> <td> <a href="/openelec/">OpenELEC</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-13 22:47:09</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-13 22:47:09 </td> <td> rsync://ftp.nluug.nl/openelec/ </td> <td>12.87 GB<p style='display:none'>13817177491</p></td> </tr>
+
+<tr> <td> <a href="/postgresql/">postgresql</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 01:36:26</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 01:36:26 </td> <td> rsync://rsync.postgresql.org/pgsql-ftp/ </td> <td>94.74 GB<p style='display:none'>101724476356</p></td> </tr>
+
+<tr> <td> <a href="/puppy/">Puppy</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 04:47:26</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 04:47:26 </td> <td> rsync://ftp.nluug.nl/Ibiblio/distributions/puppylinux/ </td> <td>57.90 GB<p style='display:none'>62171154837</p></td> </tr>
+
+<tr> <td> <a href="/pythonxy/">pythonxy</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 00:25:11</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 00:25:11 </td> <td> rsync://www.mirrorservice.org/pythonxy.com/ </td> <td>9.45 GB<p style='display:none'>10152007259</p></td> </tr>
+
+<tr> <td> <a href="/qtproject/">QT Project</a> </td> <td class='td-archive-running'>running<p style='display:none'>20</p></td> <td>2015-07-14 08:30:02</td> <td class='td-archive-unknown'>unknown<p style='display:none'>[10]</p></td> <td> 2015-07-14 02:17:15 </td> <td> rsync://master.qt-project.org/qt-all/ </td> <td>599.43 GB<p style='display:none'>643633479735</p></td> </tr>
+
+<tr> <td> <a href="/raspberrypi/">Raspberry images (archive)</a> </td> <td class='td-archive-frozen'>frozen<p style='display:none'>50</p></td> <td>unknown</td> <td class='td-archive-frozen'>frozen<p style='display:none'>[50]</p></td> <td> None </td> <td> unknown </td> <td>18.78 GB<p style='display:none'>20164929670</p></td> </tr>
+
+<tr> <td> <a href="/raspbian/">Raspbian</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 06:49:25</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 06:49:21 </td> <td> rsync://ftp.kaist.ac.kr/raspbian/ </td> <td>236.58 GB<p style='display:none'>254024811344</p></td> </tr>
+
+<tr> <td> <a href="/rfc/">RFC</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-13 22:55:24</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-13 22:55:24 </td> <td> rsync://ftp.rfc-editor.org/rfcs/ </td> <td>2.59 GB<p style='display:none'>2779276593</p></td> </tr>
+
+<tr> <td> <a href="/rpmfusion/">RPM Fusion</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 03:49:41</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 03:49:37 </td> <td> rsync://download1.rpmfusion.org/rpmfusion </td> <td>252.20 GB<p style='display:none'>270796827798</p></td> </tr>
+
+<tr> <td> <a href="/ruby/">ruby</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-13 09:58:43</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-13 09:58:42 </td> <td> ftp://ftp.ruby-lang.org/pub//ruby/ </td> <td>-<p style='display:none'>0</p></td> </tr>
+
+<tr> <td> <a href="/rubygems/">rubygems</a> </td> <td class='td-archive-unmanaged'>unmanaged<p style='display:none'>40</p></td> <td>once a day</td> <td class='td-archive-unmanaged'>unmanaged<p style='display:none'>[40]</p></td> <td> None </td> <td> http://ruby.taobao.org/ </td> <td>-<p style='display:none'>0</p></td> </tr>
+
+<tr> <td> <a href="/scientificlinux/">Scientific Linux</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 04:41:39</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 04:41:37 </td> <td> rsync://rsync.scientificlinux.org/scientific/ </td> <td>1.08 TB<p style='display:none'>1188489628827</p></td> </tr>
+
+<tr> <td> <a href="/slackware/">Slackware</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 04:02:39</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 04:02:39 </td> <td> rsync://ftp.nara.wide.ad.jp/slackware/ </td> <td>197.41 GB<p style='display:none'>211964677317</p></td> </tr>
+
+<tr> <td> <a href="/tdf/libreoffice/">TDF LibreOffice</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 02:44:05</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 02:44:04 </td> <td> rsync://rsync.documentfoundation.org/tdf-pub/ </td> <td>41.68 GB<p style='display:none'>44753979081</p></td> </tr>
+
+<tr> <td> <a href="/trisquel/">Trisquel</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 01:46:29</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 01:46:27 </td> <td> rsync://rsync.trisquel.info/trisquel.packages </td> <td>353.63 GB<p style='display:none'>379705804783</p></td> </tr>
+
+<tr> <td> <a href="/turnkeylinux/">TurnKey Linux</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 08:20:57</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 08:20:57 </td> <td> rsync://mirror.turnkeylinux.org/turnkeylinux/ </td> <td>569.76 GB<p style='display:none'>611777300422</p></td> </tr>
+
+<tr> <td> <a href="/ubuntu/">Ubuntu</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 06:53:07</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 06:53:07 </td> <td> rsync://archive.ubuntu.com/ubuntu </td> <td>786.09 GB<p style='display:none'>844055711520</p></td> </tr>
+
+<tr> <td> <a href="/ubuntu-ports/">Ubuntu Ports</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 06:09:58</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 06:09:58 </td> <td> rsync://ftp.ubuntu-tw.org/ubuntu-ports/ </td> <td>708.93 GB<p style='display:none'>761207578218</p></td> </tr>
+
+<tr> <td> <a href="/ubuntu-cdimage/">Ubuntu CD images</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 07:30:10</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 07:30:10 </td> <td> rsync://cdimage.ubuntu.com/cdimage/ </td> <td>368.63 GB<p style='display:none'>395811505311</p></td> </tr>
+
+<tr> <td> <a href="/ubuntu-releases/">Ubuntu Releases</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 06:30:09</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 06:30:09 </td> <td> rsync://rsync.releases.ubuntu.com/releases/ </td> <td>16.31 GB<p style='display:none'>17509280548</p></td> </tr>
+
+<tr> <td> <a href="/ubuntu-old-releases/">Ubuntu Old Releases</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 08:18:34</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 08:18:34 </td> <td> rsync://old-releases.ubuntu.com/old-releases/ </td> <td>2.48 TB<p style='display:none'>2724560806206</p></td> </tr>
+
+<tr> <td> <a href="/videolan-ftp/">VideoLAN</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 01:48:54</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 01:48:53 </td> <td> rsync://rsync.videolan.org/videolan-ftp/ </td> <td>33.09 GB<p style='display:none'>35531413599</p></td> </tr>
+
+<tr> <td> <a href="/Xorg/">Xorg</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 04:31:19</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 04:31:19 </td> <td> rsync://ftp.kddilabs.jp/X11/ftp.x.org/ </td> <td>10.02 GB<p style='display:none'>10759250243</p></td> </tr>
+
+<tr> <td> <a href="/apache/">Apache</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-13 20:37:15</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-13 20:37:14 </td> <td> rsync://rsync.apache.org/apache-dist/ </td> <td>57.75 GB<p style='display:none'>62005909446</p></td> </tr>
+
+<tr> <td> <a href="/bioc/">Bioconductor</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 06:06:24</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 06:06:24 </td> <td> rsync://master.bioconductor.org/packages/ </td> <td>881.47 GB<p style='display:none'>946472606907</p></td> </tr>
+
+<tr> <td> <a href="/CPAN/">CPAN</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 00:44:49</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 00:44:48 </td> <td> rsync://cpan-rsync.perl.org/CPAN/ </td> <td>18.11 GB<p style='display:none'>19442021325</p></td> </tr>
+
+<tr> <td> <a href="/CRAN/">CRAN</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 01:13:47</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 01:13:42 </td> <td> rsync://cran.r-project.org/CRAN/ </td> <td>129.28 GB<p style='display:none'>138816125785</p></td> </tr>
+
+<tr> <td> <a href="/CTAN/">CTAN</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 00:58:59</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 00:58:52 </td> <td> rsync://rsync.dante.ctan.org/CTAN </td> <td>26.87 GB<p style='display:none'>28847977041</p></td> </tr>
+
+<tr> <td> <a href="/cygwin/">Cygwin</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 03:43:28</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 03:43:27 </td> <td> rsync://sourceware.org/cygwin-ftp/ </td> <td>56.35 GB<p style='display:none'>60505437540</p></td> </tr>
+
+<tr> <td> <a href="/sourceware.org/cygwinports/">Cygwin Ports Porject</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 06:37:20</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 06:37:20 </td> <td> rsync://sourceware.org/cygwinports-ftp/ </td> <td>28.35 GB<p style='display:none'>30441112253</p></td> </tr>
+
+<tr> <td> <a href="/dotdeb/">Dotdeb Packages</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 03:25:08</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 03:25:08 </td> <td> rsync://packages.dotdeb.org/packages/ </td> <td>2.22 GB<p style='display:none'>2383744396</p></td> </tr>
+
+<tr> <td> <a href="/eclipse/">Eclipse</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 07:43:44</td> <td class='td-archive-fail'>fail<p style='display:none'>[0]rsync error: error in socket IO (code 10) at io.c(785) [receiver=3.1.1]
+<br>rsync error: error in socket IO (code 10) at io.c(820) [generator=3.1.1]
+<br></p></td> <td> 2015-06-03 20:36:03 </td> <td> rsync://download.eclipse.org/eclipseMirror/ </td> <td>-<p style='display:none'>0</p></td> </tr>
+
+<tr> <td> <a href="/fink/">Fink Project</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 04:46:55</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 04:46:55 </td> <td> rsync://master.us.finkmirrors.net/distfiles/ </td> <td>107.22 GB<p style='display:none'>115123023653</p></td> </tr>
+
+<tr> <td> <a href="/vim/">Vim</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-13 14:05:31</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-13 14:05:31 </td> <td> rsync://ftp.vim.org/Vim/ </td> <td>5.29 GB<p style='display:none'>5685170920</p></td> </tr>
+
+<tr> <td> <a href="/openvz/">OpenVZ</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 03:50:09</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 03:50:09 </td> <td> rsync://download.openvz.org/openvz-download/ </td> <td>167.48 GB<p style='display:none'>179834005061</p></td> </tr>
+
+<tr> <td> <a href="/sagemath/">Sage Math</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-13 18:25:27</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-13 18:25:26 </td> <td> rsync://rsync.sagemath.org/sage/ </td> <td>67.61 GB<p style='display:none'>72598114157</p></td> </tr>
+
+<tr> <td> <a href="/mageia/">Mageia</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 05:23:08</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 05:23:08 </td> <td> rsync://ftp.snt.utwente.nl/mageia/ </td> <td>880.95 GB<p style='display:none'>945910611427</p></td> </tr>
+
+<tr> <td> <a href="/tldp/">TLDP</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 06:50:00</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 06:50:00 </td> <td> rsync://ftp.ibiblio.org/ldp_mirror/ </td> <td>3.35 GB<p style='display:none'>3598476259</p></td> </tr>
+
+<tr> <td> <a href="/msys2/">MSYS2</a> </td> <td class='td-archive-unmanaged'>unmanaged<p style='display:none'>40</p></td> <td>unknown</td> <td class='td-archive-unmanaged'>unmanaged<p style='display:none'>[40]</p></td> <td> None </td> <td> http://sourceforge.net/projects/msys2/files/ </td> <td>-<p style='display:none'>0</p></td> </tr>
+
+<tr> <td> <a href="/neurodebian/">NeuroDebian</a> </td> <td class='td-archive-finished'>finished<p style='display:none'>30</p></td> <td>2015-07-14 05:35:50</td> <td class='td-archive-success'>success<p style='display:none'>[30]</p></td> <td> 2015-07-14 05:35:50 </td> <td> rsync://neuro.debian.net/neurodebian/ </td> <td>48.48 GB<p style='display:none'>52056907084</p></td> </tr>
+
+</tbody></table>
+</body>
+</html>

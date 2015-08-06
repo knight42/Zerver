@@ -7,6 +7,11 @@
 //#define 
 //typedef 
 
+void getvalue(char *s, char *value){
+    char *p=strchr(s, '=');
+    strcpy(value, p+1);
+}
+
 int main(int argc, char *argv[]){
     char *buf, *p;
     char arg1[BUFSIZ], arg2[BUFSIZ], content[BUFSIZ];
@@ -14,8 +19,8 @@ int main(int argc, char *argv[]){
     buf = getenv("QUERY_STR");
     p=strchr(buf, '&');
     *p=0;
-    strcpy(arg1, buf);
-    strcpy(arg2, p+1);
+    getvalue(buf, arg1);
+    getvalue(p+1, arg2);
     n1=atoi(arg1); n2=atoi(arg2);
 
     sprintf(content, "<p>Welcome! </p>\r\n");
