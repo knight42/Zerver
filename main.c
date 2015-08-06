@@ -24,9 +24,10 @@ void disperror(int fd, const char *cause, const char *errnum,
                const char *shortmsg, const char *longmsg);
 
 int parse_uri(char *uri, char *filename, char *cgiargs);
-/* parse_uri() result:
+/* 
+ * result:
  * e.g uri = /asd?1&3
- * filename will be 'asd'
+ * filename will be '/asd'
  * cgiargs willbe '1&3'
  */
 
@@ -272,7 +273,7 @@ void get_filetype(char *filename, char *filetype)
 
 void serve_dynamic(int fd, char *filename, char *cgiargs)
 {
-    char buf[BUFSIZ], *emptylist[] = {NULL};
+    char buf[BUFSIZ], *emptylist[]={NULL};
     sprintf(buf, "%s", "HTTP/1.0 200 OK\r\n");
     strcat(buf, SERVER_STRING);
     rio_writen(fd, buf, strlen(buf));
@@ -332,19 +333,19 @@ int handle_request(int fd)
         case GET:
             is_static = parse_uri(uri, filename, cgiargs);
             if(stat(filename, &sbuf) < 0){
-                disperror(fd, filename, "404", "Not found", "Zerver couldnt find this file.");
+                disperror(fd, filename, "404", "Not found", "Zerver couldnt find this file");
                 return 1;
             }
             if(is_static){
                 if(!(S_IRUSR & sbuf.st_mode) || !(S_ISREG(sbuf.st_mode))){
-                    disperror(fd, filename, "403", "Forbidden", "Zerver couldnt read this file.");
+                    disperror(fd, filename, "403", "Forbidden", "Zerver couldnt read this file");
                     return 1;
                 }
                 serve_static(fd, filename, sbuf.st_size);
             }
             else{
                 if(!(S_ISREG(sbuf.st_mode)) || !(S_IXUSR & sbuf.st_mode)){
-                    disperror(fd, filename, "403", "Forbidden", "Zerver couldn't read this file.");
+                    disperror(fd, filename, "403", "Forbidden", "Zerver couldn't read this file");
                     return 1;
                 }
                 serve_dynamic(fd, filename, cgiargs);
@@ -352,8 +353,12 @@ int handle_request(int fd)
             break;
         case POST:
             sprintf(filename, "%s%s", basedir, uri);
+            if(stat(filename, &sbuf) < 0){
+                disperror(fd, filename, "404", "Not found", "Zerver couldnt find this file");
+                return 1;
+            }
             if(!(S_ISREG(sbuf.st_mode)) || !(S_IXUSR & sbuf.st_mode)){
-                disperror(fd, filename, "403", "Forbidden", "Zerver couldn't read this file.");
+                disperror(fd, filename, "403", "Forbidden", "Zerver couldn't read this file");
                 return 1;
             }
             serve_dynamic(fd, filename, cgiargs);

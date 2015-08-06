@@ -9,3 +9,4 @@
 #define TRACE 84
 
 #define MAXEVENTS 1024
+#define MAXARGS 20
