@@ -1,18 +1,19 @@
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <signal.h>
-#include <fcntl.h>  // open()
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #include "config.h"
 #include "rio.h"
 #include "sockfd.h"
-#include "misc.h"
-#include "epoll.h"
 
 #define upper(a) ((a)<91?(a):(a)-('a'-'A'))
 #define strhash(s) (*(s))
@@ -24,9 +25,20 @@ void read_requesthdrs(rio_t *rp, char *cgiargs);
 void get_filetype(char *filename, char *filetype);
 void serve_dynamic(int fd, char *filename, char *cgiargs);
 void serve_static(int fd, char *filename, long size);
-void handle_request(int fd);
+int handle_request(int fd);
 
-static char *basedir=NULL;
+void SigHandle(int sig){
+    switch(sig){
+        case SIGPIPE:
+            fprintf(stderr, "\nBroken Pipe\n");
+            break;
+        case SIGCHLD:
+            while(waitpid(-1, 0, WNOHANG) > 0) ;
+            break;
+    }
+}
+
+static char basedir[BUFSIZ]={0};
 
 #define VERBOSE
 
@@ -35,12 +47,11 @@ int main(int argc, char *argv[]){
     socklen_t cli_len=sizeof(cli_addr);;
     int opt, listenfd, connfd;
     uint16_t port=34696;
-    char *dir=BASEDIR;
     
-    //long cpucores = sysconf(_SC_NPROCESSORS_ONLN);
+    //int cpucores = (int)sysconf(_SC_NPROCESSORS_ONLN);
 
-    signal(SIGPIPE, SIGPIPE_Handle);
-    signal(SIGCHLD, SIGCHLD_Handle);
+    signal(SIGPIPE, SigHandle);
+    signal(SIGCHLD, SigHandle);
 
     while((opt = getopt(argc, argv, "hp:w:")) != -1){
         char *c;
@@ -50,14 +61,14 @@ int main(int argc, char *argv[]){
                 port = (uint16_t)atoi(optarg);
                 break;
             case 'w':
-                dir = optarg;
-                c = dir + strlen(dir) - 1;
+                strncpy(basedir, optarg, BUFSIZ);
+                c = basedir + strlen(basedir) - 1;
                 *c = (*c == '/') ? 0 : *c;
-                if(stat(dir, &sb) < 0){
+                if(stat(basedir, &sb) < 0){
                     diehere("stat");
                 }
                 if((sb.st_mode & S_IFMT) != S_IFDIR){
-                    fprintf(stderr, "Invalid working dir: %s\n", dir);
+                    fprintf(stderr, "Invalid working basedir: %s\n", basedir);
                     exit(1);
                 }
                 break;
@@ -70,53 +81,67 @@ int main(int argc, char *argv[]){
         }
     }
 
-    basedir = dir;
+    if(*basedir == 0){
+        int l = strlen(argv[0]);
+        strncpy(basedir, argv[0], BUFSIZ);
+        char *c = basedir + l;
+        for(; *c != '/'; --c);
+        *c = 0;
+    }
 
 #ifdef VERBOSE
     printf("working dir: %s\n", basedir);
 #endif
 
     listenfd = open_listenfd(&port);
-    printf("listen port: %d\n", port);
-    /*
-    while(1){
-        connfd = accept(listenfd, (struct sockaddr*)&cli_addr, &cli_len);
-        if(fork() == 0){
-            close(listenfd);
-            handle_request(connfd);
-            close(connfd);
-            exit(0);
-        }
-        close(connfd);
+    {
+        int flags;
+        flags = fcntl(listenfd, F_GETFD);
+        flags |= O_NONBLOCK;
+        fcntl(listenfd, F_SETFD, flags);
     }
-    */
+
+    printf("listen port: %d\n", port);
+
     struct epoll_event ev, events[MAXEVENTS];
     int efd, nfds, i;
-    SetNonBlocking(listenfd);
     efd = epoll_create1(0);
     ev.data.fd = listenfd;
-    ev.events = EPOLLIN | EPOLLET;
+    //ev.events = EPOLLIN | EPOLLOUT | EPOLLET;
+    ev.events = EPOLLIN;
     epoll_ctl(efd, EPOLL_CTL_ADD, listenfd, &ev);
     for(;;){
+        puts("waiting...");
         nfds = epoll_wait(efd, events, MAXEVENTS, -1);
+        puts("new event!");
         for(i=0; i<nfds; ++i){
-            if(events[i].events & (EPOLLHUP | EPOLLERR)){
-                fprintf(stderr, "error on fd: %d\n", events[i].data.fd);
+            if(events[i].events & (EPOLLHUP | EPOLLERR | EPOLLRDHUP) ||
+                    !(events[i].events & EPOLLIN)){
+                fprintf(stderr, "error on fd: %d: %d\n", events[i].data.fd, events[i].events);
                 close(events[i].data.fd);
                 continue;
             }
             if(events[i].data.fd == listenfd){
                 bzero(&cli_addr, sizeof(cli_addr));
-                connfd = accept(listenfd, (struct sockaddr*)&cli_addr, &cli_len);
-                SetNonBlocking(connfd);
+                connfd = accept4(listenfd, (struct sockaddr*)&cli_addr,
+                                 &cli_len, SOCK_NONBLOCK | SOCK_CLOEXEC);
                 ev.data.fd = connfd;
-                epoll_ctl(efd, EPOLL_CTL_ADD, connfd, &ev);
+                if(epoll_ctl(efd, EPOLL_CTL_ADD, connfd, &ev) < 0){
+                    fprintf(stderr, "epoll_ctl add error\n");
+                    perror("epoll_ctl add");
+                }
                 #ifdef VERBOSE
                 printf("new client fd: %d\n", connfd);
                 #endif
             }
             else{
                 handle_request(events[i].data.fd);
+                /* should we delete the connection fd after request is finished?
+                if(epoll_ctl(efd, EPOLL_CTL_DEL, events[i].data.fd, NULL) < 0){
+                    fprintf(stderr, "epoll_ctl del error\n");
+                    perror("epoll_ctl del");
+                }
+                */
                 close(events[i].data.fd);
                 #ifdef VERBOSE
                 printf("client fd: %d leave\n", events[i].data.fd);
@@ -132,11 +157,11 @@ void disperror(int fd, const char *cause, const char *errnum,
                 const char *shortmsg, const char *longmsg)
 {
     char buf[BUFSIZ], body[BUFSIZ];
-    sprintf(body, "<html><title>Zerver Error</title>");
+    sprintf(body, "<html><title>%s %s</title>", errnum, shortmsg);
     strcat(body, "<body bgcolor='#ffffff'>\r\n");
     sprintf(body, "%s<h1>%s: %s</h1>\r\n", body, errnum, shortmsg);
     sprintf(body, "%s<p>%s: %s</p>\r\n", body, longmsg, cause);
-    strcat(body, "<hr/><em>Zerver/1.0.0</em>");
+    strcat(body, "<hr/>Powered by <em>Zerver/1.0.0</em></body></html>\r\n");
 
     sprintf(buf, "HTTP/1.0 %s %s\r\n", errnum, shortmsg);
     rio_writen(fd, buf, strlen(buf));
@@ -182,6 +207,7 @@ void read_requesthdrs(rio_t *rp, char *cgiargs)
             nread = atoi(p);
         }
         rio_readlineb(rp, buf, BUFSIZ);
+        if(errno == EAGAIN) break;
         #ifdef VERBOSE
         printf("%s", buf);
         #endif
@@ -246,7 +272,7 @@ void serve_static(int fd, char *filename, long size)
     close(srcfd);
 }
 
-void handle_request(int fd)
+int handle_request(int fd)
 {
     char buf[BUFSIZ], method[BUFSIZ], uri[BUFSIZ], version[BUFSIZ], \
          filename[BUFSIZ], cgiargs[BUFSIZ];
@@ -259,11 +285,11 @@ void handle_request(int fd)
     nread = rio_readlineb(&rio, buf, BUFSIZ);
 
     #ifdef VERBOSE
-    printf("read from client:\n%s", buf);
+    printf("%s", buf);
     #endif
 
     // blank uri
-    if(nread == 0) return;
+    if(nread == 0) return 0;
 
     sscanf(buf, "%s %s %s", method, uri, version);
     if(uri[strlen(uri)-1] == '/')
@@ -277,19 +303,19 @@ void handle_request(int fd)
             is_static = parse_uri(uri, filename, cgiargs);
             if(stat(filename, &sbuf) < 0){
                 disperror(fd, filename, "404", "Not found", "Zerver couldnt find this file.");
-                return;
+                return 1;
             }
             if(is_static){
                 if(!(S_IRUSR & sbuf.st_mode) || !(S_ISREG(sbuf.st_mode))){
                     disperror(fd, filename, "403", "Forbidden", "Zerver couldnt read this file.");
-                    return;
+                    return 1;
                 }
                 serve_static(fd, filename, sbuf.st_size);
             }
             else{
                 if(!(S_ISREG(sbuf.st_mode)) || !(S_IXUSR & sbuf.st_mode)){
                     disperror(fd, filename, "403", "Forbidden", "Zerver couldn't read this file.");
-                    return;
+                    return 1;
                 }
                 serve_dynamic(fd, filename, cgiargs);
             }
@@ -298,7 +324,7 @@ void handle_request(int fd)
             sprintf(filename, "%s%s", basedir, uri);
             if(!(S_ISREG(sbuf.st_mode)) || !(S_IXUSR & sbuf.st_mode)){
                 disperror(fd, filename, "403", "Forbidden", "Zerver couldn't read this file.");
-                return;
+                return 1;
             }
             serve_dynamic(fd, filename, cgiargs);
             break;
@@ -307,6 +333,7 @@ void handle_request(int fd)
             break;
         default:
             disperror(fd, "", "501", "Method Not Implemented", "");
-            break;
+            return -1;
     }
+    return 0;
 }
