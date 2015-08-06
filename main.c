@@ -1,3 +1,4 @@
+/* explicit declaration for accept4() and strcasestr() */
 #define  _GNU_SOURCE 
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,12 +22,40 @@
 
 void disperror(int fd, const char *cause, const char *errnum,
                const char *shortmsg, const char *longmsg);
+
 int parse_uri(char *uri, char *filename, char *cgiargs);
+/* parse_uri() result:
+ * e.g uri = /asd?1&3
+ * filename will be 'asd'
+ * cgiargs willbe '1&3'
+ */
+
 void read_requesthdrs(rio_t *rp, char *cgiargs);
+/*
+ * read content from rp->rio_buf[BUFSIZ]
+ * if it is a POST request
+ * cgiargs will be set to be the args sent in the packet content
+ */
+
 void get_filetype(char *filename, char *filetype);
+/*
+ * get filetype name according to the filename extension
+ */
+
 void serve_dynamic(int fd, char *filename, char *cgiargs);
+/*
+ * fork() and execute the file in ./cgi-bin/ that is requested
+ */
+
 void serve_static(int fd, char *filename, long size);
+/*
+ * behave as a simple http server
+ */
+
 int handle_request(int fd);
+/*
+ * the core function that handle every request
+ */
 
 void SigHandle(int sig){
     switch(sig){
@@ -141,14 +170,8 @@ int main(int argc, char *argv[]){
             }
             else{
                 handle_request(events[i].data.fd);
-                /*
-                should we delete the connect fd after request is finished?
-
-                if(epoll_ctl(efd, EPOLL_CTL_DEL, events[i].data.fd, NULL) < 0){
-                    fprintf(stderr, "epoll_ctl del error\n");
-                    perror("epoll_ctl del");
-                }
-                */
+                /* Closing the descriptor will make epoll remove it
+                 from the set of descriptors which are monitored. */
                 close(events[i].data.fd);
                 #ifdef VERBOSE
                 printf("client fd: %d leave\n", events[i].data.fd);
